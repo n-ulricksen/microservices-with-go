@@ -1,27 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"scratch/microservices-with-go/product-api/handlers"
+	"time"
 )
 
 func main() {
-	http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		log.Println("Hello World")
-		data, err := ioutil.ReadAll(r.Body)
+	logger := log.New(os.Stdout, "product-api", log.LstdFlags)
+	helloHandler := handlers.NewHello(logger)
+	goodbyeHandler := handlers.NewGoodbye(logger)
+
+	serveMux := http.NewServeMux()
+	serveMux.Handle("/", helloHandler)
+	serveMux.Handle("/goodbye", goodbyeHandler)
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      serveMux,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+	}
+
+	go func() {
+		err := server.ListenAndServe()
 		if err != nil {
-			http.Error(rw, "Oops", http.StatusBadRequest)
-			return
+			logger.Fatal(err)
 		}
+	}()
 
-		fmt.Fprintf(rw, "Hello %s", data)
-	})
+	signalChan := make(chan os.Signal)
+	signal.Notify(signalChan, os.Interrupt)
+	signal.Notify(signalChan, os.Kill)
 
-	http.HandleFunc("/goodbye", func(rw http.ResponseWriter, r *http.Request) {
-		log.Println("Goodbye World")
-	})
+	sig := <-signalChan
+	logger.Println("Received terminate, graceful shutdown", sig)
 
-	http.ListenAndServe(":8080", nil)
+	// Allow 30 seconds for graceful shutdown; forcefully close any handlers
+	// still running after timeout duration.
+	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	server.Shutdown(timeoutContext)
 }
