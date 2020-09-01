@@ -2,6 +2,14 @@ basePath: /
 consumes:
 - application/json
 definitions:
+  GenericError:
+    description: GenericError is a generic error message returned by a server
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: scratch/microservices-with-go/product-api/handlers
   Product:
     description: Product defines the structure for an API product
     properties:
@@ -42,27 +50,47 @@ paths:
           $ref: '#/responses/productsResponse'
       tags:
       - products
+    post:
+      description: Create a new product
+      operationId: createProduct
+      responses:
+        "200":
+          $ref: '#/responses/productsResponse'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - products
   /products/{id}:
     delete:
       description: Deletes a product from the data store
       operationId: deleteProduct
-      parameters:
-      - description: The id of the product to delete form the database
-        format: int64
-        in: path
-        name: id
-        required: true
-        type: integer
-        x-go-name: ID
       responses:
         "201":
-          $ref: '#/responses/noContent'
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - products
+    put:
+      description: Update a product's details
+      operationId: updateProduct
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
       tags:
       - products
 produces:
 - application/json
 responses:
-  noContent: {}
+  errorResponse:
+    description: Generic error message returned as a string
+    schema:
+      $ref: '#/definitions/GenericError'
+  noContentResponse: {}
   productsResponse:
     description: A list of products returns in the response
     schema:

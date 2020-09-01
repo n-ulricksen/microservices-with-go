@@ -8,6 +8,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// swagger:route PUT /products/{id} products updateProduct
+// Update a product's details
+//
+// responses:
+// 	201: noContentResponse
+// 	404: errorResponse
 func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
