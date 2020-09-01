@@ -9,6 +9,7 @@ import (
 	"scratch/microservices-with-go/product-api/handlers"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 )
 
@@ -31,6 +32,15 @@ func main() {
 	postRouter := muxRouter.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", productsHandler.AddProduct)
 	postRouter.Use(productsHandler.MiddlewareProductValidation)
+
+	deleteRouter := muxRouter.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/{id:[0-9]+}", productsHandler.DeleteProduct)
+
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	swaggerHandler := middleware.Redoc(opts, nil)
+
+	getRouter.Handle("/docs", swaggerHandler)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	// create a new server
 	server := &http.Server{
